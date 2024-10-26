@@ -1,0 +1,179 @@
+import bpy
+import bmesh
+
+# Hapus semua objek yang ada di scene
+bpy.ops.object.select_all(action='SELECT')
+bpy.ops.object.delete(use_global=False)
+
+# Tambahkan mesh UV Sphere (bola)
+bpy.ops.mesh.primitive_uv_sphere_add(segments=64, ring_count=32, radius=1.02, location=(0, 0, 0))
+bola = bpy.context.object
+bpy.ops.object.shade_smooth()
+
+# Masuk ke mode edit untuk memodifikasi mesh
+bpy.ops.object.mode_set(mode='EDIT')
+
+# Buat bmesh untuk memodifikasi geometry
+mesh = bmesh.from_edit_mesh(bola.data)
+
+# Pilih vertex dengan z < 0 (bagian bawah bola)
+for vert in mesh.verts:
+    if vert.co.z < 0:
+        vert.select = True
+    else:
+        vert.select = False
+
+# Hapus bagian bawah bola untuk membuat setengah bola
+bpy.ops.mesh.delete(type='VERT')
+
+# Perbarui mesh agar perubahan diterapkan
+bmesh.update_edit_mesh(bola.data)
+
+# Kembali ke mode objek
+bpy.ops.object.mode_set(mode='OBJECT')
+
+# Buat material berwarna biru
+material_biru = bpy.data.materials.new(name="Biru")
+material_biru.use_nodes = True
+bsdf_biru = material_biru.node_tree.nodes.get('Principled BSDF')
+bsdf_biru.inputs['Base Color'].default_value = (0, 0, 1, 1)  # Warna biru (RGBA)
+
+# Terapkan material biru ke objek setengah bola
+bola.data.materials.append(material_biru)
+bola.active_material = material_biru
+
+# Duplikasi objek setengah bola
+bpy.ops.object.duplicate(linked=False)
+duplikat_bola = bpy.context.object
+
+# Rotasi duplikat pada sumbu X sebesar 180 derajat
+duplikat_bola.rotation_euler[0] = 3.14159  # Rotasi 180 derajat dalam radian
+
+# Buat material berwarna putih
+material_putih = bpy.data.materials.new(name="Putih")
+material_putih.use_nodes = True
+bsdf_putih = material_putih.node_tree.nodes.get('Principled BSDF')
+bsdf_putih.inputs['Base Color'].default_value = (1, 1, 1, 1)  # Warna putih (RGBA)
+
+# Terapkan material putih ke objek duplikat
+duplikat_bola.data.materials.clear()  # Hapus material lama
+duplikat_bola.data.materials.append(material_putih)
+duplikat_bola.active_material = material_putih
+
+# ==========================================
+# Posisi dinamis untuk kedua objek bulat pipih
+location_1 = (0.38, 1, 0.4)  # Lokasi objek bulat pipih pertama
+location_2 = (-0.38, 1, 0.4)  # Lokasi objek bulat pipih kedua
+
+# Rotasi dinamis untuk kedua objek bulat pipih
+rotation_1 = (1.57, 0, 0)  # Rotasi objek bulat pipih pertama dalam radian (x, y, z)
+rotation_2 = (1.57, 0, 0)  # Rotasi objek bulat pipih kedua dalam radian (x, y, z)
+# ==========================================
+
+# Buat material putih untuk objek bulat pipih
+material_bulat_putih = bpy.data.materials.new(name="BulatPutih")
+material_bulat_putih.use_nodes = True
+bsdf_bulat_putih = material_bulat_putih.node_tree.nodes.get('Principled BSDF')
+bsdf_bulat_putih.inputs['Base Color'].default_value = (1, 1, 1, 1)  # Warna putih (RGBA)
+
+# Tambahkan dua objek bulat pipih di permukaan setengah bola biru
+for i, (location, rotation) in enumerate([(location_1, rotation_1), (location_2, rotation_2)]):
+    # Buat objek bulat pipih (Cylinder dengan skala di Z)
+    bpy.ops.mesh.primitive_cylinder_add(vertices=64, radius=0.35, depth=0.05, location=location)
+    bulat_pipih = bpy.context.object
+    
+    # Skalakan objek bulat pipih agar pipih (skala Z yang kecil)
+    bulat_pipih.scale[2] = 0.1
+    
+    # Beri nama unik
+    bulat_pipih.name = f"BulatPipih_{i+1}"
+    
+    # Atur rotasi objek bulat pipih
+    bulat_pipih.rotation_euler = rotation
+
+ # Terapkan material putih ke bulat pipih
+    bulat_pipih.data.materials.clear()  # Hapus material sebelumnya
+    bulat_pipih.data.materials.append(material_bulat_putih)
+    bulat_pipih.active_material = material_bulat_putih
+
+# Pilih setengah bola biru untuk memastikan objek terakhir aktif
+bpy.context.view_layer.objects.active = bola
+
+def add_semi_flat_sphere(location, rotation, scale, color=(0, 0, 1, 1)):
+    # Tambahkan mesh UV Sphere (bola)
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=64, ring_count=32, radius=1, location=location)
+    setengah_bola = bpy.context.object
+    
+    # Masuk ke mode edit untuk memodifikasi mesh
+    bpy.ops.object.mode_set(mode='EDIT')
+
+    # Buat bmesh untuk memodifikasi geometry
+    mesh = bmesh.from_edit_mesh(setengah_bola.data)
+
+    # Pilih vertex dengan z < 0 (bagian bawah bola)
+    for vert in mesh.verts:
+        if vert.co.z < 0:
+            vert.select = True
+        else:
+            vert.select = False
+
+    # Hapus bagian bawah bola untuk membuat setengah bola
+    bpy.ops.mesh.delete(type='VERT')
+
+    # Perbarui mesh agar perubahan diterapkan
+    bmesh.update_edit_mesh(setengah_bola.data)
+
+    # Kembali ke mode objek
+    bpy.ops.object.mode_set(mode='OBJECT')
+    
+    bpy.ops.object.shade_smooth()
+
+    # Terapkan skala agar bola menjadi pipih
+    setengah_bola.scale = scale
+    
+    # Buat material berwarna biru
+    material_biru_pipih = bpy.data.materials.new(name="BiruPipih")
+    material_biru_pipih.use_nodes = True
+    bsdf_biru_pipih = material_biru_pipih.node_tree.nodes.get('Principled BSDF')
+    bsdf_biru_pipih.inputs['Base Color'].default_value = color  # Warna biru (RGBA)
+
+    # Terapkan material biru ke objek setengah bola
+    setengah_bola.data.materials.append(material_biru_pipih)
+    setengah_bola.active_material = material_biru_pipih
+    
+    # Atur rotasi objek
+    setengah_bola.rotation_euler = rotation
+
+    return setengah_bola
+
+# penggunaan fungsi
+location_bola_pipih = (0, 0.1, -0.28)
+rotation_bola_pipih = (0, 3.14, 0)
+scale_bola_pipih = (0.85, 1, 0.5)  # Pipih pada sumbu Z
+add_semi_flat_sphere(location_bola_pipih, rotation_bola_pipih, scale_bola_pipih)
+
+
+# ===========================
+# Fungsi untuk menambahkan kamera
+def add_camera(location, rotation):
+    # Tambahkan kamera di lokasi dan rotasi yang diinginkan
+    bpy.ops.object.camera_add(location=location, rotation=rotation)
+    camera = bpy.context.object
+    bpy.context.scene.camera = camera  # Jadikan kamera ini sebagai kamera aktif
+
+# Fungsi untuk menambahkan lampu
+def add_light(light_type, location, energy=1000):
+    # Tambahkan lampu dengan jenis yang diinginkan (POINT, SUN, SPOT, AREA)
+    bpy.ops.object.light_add(type=light_type, location=location)
+    light = bpy.context.object
+    light.data.energy = energy  # Atur intensitas cahaya
+    
+# Atur posisi dan rotasi kamera 
+camera_location = (0.48, 5.8, 2)  # Kamera di depan objek dan sedikit di atas
+camera_rotation = (1.23, 0, 3.1)  # Menghadap ke bawah sedikit
+add_camera(camera_location, camera_rotation)
+
+# Tambahkan lampu di berbagai posisi 
+add_light('POINT', location=(-5, 5, 5), energy=1500)
+add_light('POINT', location=(-5, 5, 2), energy=1800)  # Lampu di atas objek
+# ===========================
